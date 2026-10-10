@@ -1,0 +1,49 @@
+#define IR_SENSOR_PIN 23
+
+volatile unsigned long pulseCount = 0;
+
+unsigned long previousMillis = 0;
+
+const unsigned long interval = 1000;  // 1 second
+const int pulsesPerRevolution = 1;
+
+void IRAM_ATTR countPulse() {
+  pulseCount++;
+}
+
+void setup() {
+  Serial.begin(115200);
+
+  pinMode(IR_SENSOR_PIN, INPUT_PULLUP);
+
+  attachInterrupt(
+    digitalPinToInterrupt(IR_SENSOR_PIN),
+    countPulse,
+    FALLING
+  );
+
+  Serial.println("ESP32 Tire RPM Meter");
+  Serial.println("--------------------");
+}
+
+void loop() {
+  unsigned long currentMillis = millis();
+
+  if (currentMillis - previousMillis >= interval) {
+    previousMillis = currentMillis;
+
+    noInterrupts();
+    unsigned long pulses = pulseCount;
+    pulseCount = 0;
+    interrupts();
+
+    float rpm = (pulses * 60000.0) /
+                (interval * pulsesPerRevolution);
+
+    Serial.print("Pulses: ");
+    Serial.print(pulses);
+
+    Serial.print(" | RPM: ");
+    Serial.println(rpm, 1);
+  }
+}
